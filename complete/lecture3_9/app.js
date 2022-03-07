@@ -49,12 +49,16 @@ class App{
 
         let controller;
 
+        const texturearray = ['https://www.larvalabs.com/cryptopunks/cryptopunk3747.png','https://www.larvalabs.com/cryptopunks/cryptopunk1148.png', 'https://www.larvalabs.com/cryptopunks/cryptopunk2954.png' ]
+
         //Add couple of images as an array here
-        const texture = new THREE.TextureLoader().load( 'https://i.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U'    );
+        
+     /*    'boss-beauties-nft-project-768x768.jpg.webp'
+        'crypto-chicks-NFT-pfp-project-768x768.jpg.webp'
+        'sad-girls-bar-nft-project-768x768.jpg.webp'
+         */
 
-        const material2 = new THREE.MeshBasicMaterial( { map: texture } );
-
-        var geometry2 = new THREE.PlaneGeometry(.1, .1);
+       
             // plane.material.side = THREE.DoubleSide;
 
         //var mesh = new THREE.Mesh(geometry2, material2);
@@ -62,7 +66,14 @@ class App{
 
         controller = this.renderer.xr.getController( 0 );
 
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i < 3; i++) {
+
+            var texture = new THREE.TextureLoader().load( texturearray[i]    );
+
+            
+            var material2 = new THREE.MeshBasicMaterial( { map: texture } );
+
+            var geometry2 = new THREE.PlaneGeometry(.1, .1);
    
             var mesh2 = new THREE.Mesh( geometry2, material2 ); 
            // set the position of the image mesh in the x,y,z dimensions

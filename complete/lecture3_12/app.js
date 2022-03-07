@@ -1,6 +1,6 @@
-import * as THREE from '../../libs/three128/three.module.js';
-import { GLTFLoader } from '../../libs/three128/jsm/GLTFLoader.js';
-import { RGBELoader } from '../../libs/three128/jsm/RGBELoader.js';
+import * as THREE from '../../libs/three125/three.module.js';
+import { GLTFLoader } from '../../libs/three125/GLTFLoader.js';
+import { RGBELoader } from '../../libs/three125/RGBELoader.js';
 import { ARButton } from '../../libs/ARButton.js';
 import { LoadingBar } from '../../libs/LoadingBar.js';
 import { Player } from '../../libs/Player.js';
@@ -69,58 +69,65 @@ class App{
     	this.renderer.setSize( window.innerWidth, window.innerHeight );  
     }
     
-    loadKnight(){
-	    const loader = new GLTFLoader().setPath(this.assetsPath);
-		const self = this;
+    loadImage(){
+	    const texture = new THREE.TextureLoader().load( 'https://i.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U'    );
+        // immediately use the texture for material creation
+        const material2 = new THREE.MeshBasicMaterial( { map: texture } );
+        var geometry2 = new THREE.PlaneGeometry(.3, .3*.75);
+        // plane.material.side = THREE.DoubleSide;
+        var mesh = new THREE.Mesh(geometry2, material2);
+
+        // const loader = new GLTFLoader().setPath(this.assetsPath);
+		// const self = this;
 		
 		// Load a GLTF resource
-		loader.load(
-			// resource URL
-			`knight2.glb`,
-			// called when the resource is loaded
-			function ( gltf ) {
-				const object = gltf.scene.children[5];
+		// loader.load(
+		// 	// resource URL
+		// 	`knight2.glb`,
+		// 	// called when the resource is loaded
+		// 	function ( gltf ) {
+		// 		const object = gltf.scene.children[5];
 				
-				const options = {
-					object: object,
-					speed: 0.5,
-					assetsPath: self.assetsPath,
-					loader: loader,
-                    animations: gltf.animations,
-					clip: gltf.animations[0],
-					app: self,
-					name: 'knight',
-					npc: false
-				};
+				// const options = {
+				// 	object: object,
+				// 	speed: 0.5,
+				// 	assetsPath: self.assetsPath,
+				// 	loader: loader,
+                //     animations: gltf.animations,
+				// 	clip: gltf.animations[0],
+				// 	app: self,
+				// 	name: 'knight',
+				// 	npc: false
+				// };
 				
-				self.knight = new Player(options);
-                self.knight.object.visible = false;
+			self.knight = new Player(options);
+            self.knight.object.visible = false;
 				
-				self.knight.action = 'Dance';
-				const scale = 0.005;
-				self.knight.object.scale.set(scale, scale, scale); 
+			//	self.knight.action = 'Dance';
+			//	const scale = 0.005;
+			//	self.knight.object.scale.set(scale, scale, scale); 
 				
-                self.loadingBar.visible = false;
-                self.renderer.setAnimationLoop( self.render.bind(self) );//(timestamp, frame) => { self.render(timestamp, frame); } );
-			},
+            //    self.loadingBar.visible = false;
+            //    self.renderer.setAnimationLoop( self.render.bind(self) );//(timestamp, frame) => { self.render(timestamp, frame); } );
+			//},
 			// called while loading is progressing
-			function ( xhr ) {
+			//function ( xhr ) {
 
-				self.loadingBar.progress = (xhr.loaded / xhr.total);
+			//	self.loadingBar.progress = (xhr.loaded / xhr.total);
 
-			},
+			//},
 			// called when loading has errors
-			function ( error ) {
+			// function ( error ) {
 
-				console.log( 'An error happened' );
+			// 	console.log( 'An error happened' );
 
-			}
-		);
+			// }
+		//);
 	}		
     
     initScene(){
         this.reticle = new THREE.Mesh(
-            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ).rotateX( - Math.PI / 2 ),
+            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ),//.rotateX( - Math.PI / 2 ),
             new THREE.MeshBasicMaterial()
         );
         
@@ -128,7 +135,7 @@ class App{
         this.reticle.visible = false;
         this.scene.add( this.reticle );
         
-        this.loadKnight();
+        this.loadImage();
     }
     
     setupXR(){
@@ -142,17 +149,23 @@ class App{
         this.hitTestSource = null;
         
         function onSelect() {
-            if (self.knight===undefined) return;
+
+            mesh.position.set( 0, 0, - 0.3 ).applyMatrix4( controller.matrixWorld );
+            mesh.quaternion.setFromRotationMatrix( controller.matrixWorld );
+            self.scene.add( mesh );
+            self.meshes.push( mesh );
+
+         //   if (self.knight===undefined) return;
             
-            if (self.reticle.visible){
-                if (self.knight.object.visible){
-                    self.workingVec3.setFromMatrixPosition( self.reticle.matrix );
-                    self.knight.newPath(self.workingVec3);
-                }else{
-                    self.knight.object.position.setFromMatrixPosition( self.reticle.matrix );
-                    self.knight.object.visible = true;
-                }
-            }
+            // if (self.reticle.visible){
+            //     if (self.knight.object.visible){
+            //         self.workingVec3.setFromMatrixPosition( self.reticle.matrix );
+            //         self.knight.newPath(self.workingVec3);
+            //     }else{
+            //         self.knight.object.position.setFromMatrixPosition( self.reticle.matrix );
+            //         self.knight.object.visible = true;
+            //     }
+            // }
         }
 
         this.controller = this.renderer.xr.getController( 0 );

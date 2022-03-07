@@ -81,7 +81,7 @@ class App{
             //mesh.position.set( 0, 0, - 0.3 ).applyMatrix4( controller.matrixWorld );
             
             //mesh2.position.set(-5+ 2*(i%5),i/5,0).applyMatrix4( controller.matrixWorld );
-            mesh2.position.set(0.11*(i%4)-0.2 ,0.11*(i/4)-0.2, - 0.3 ).applyMatrix4( controller.matrixWorld );
+            mesh2.position.set(0.11*(i%4)-0.2 ,0.11*(i/4), - 0.3 ).applyMatrix4( controller.matrixWorld );
            
         
             // add the image to the scene

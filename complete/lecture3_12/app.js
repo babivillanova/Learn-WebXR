@@ -1,9 +1,8 @@
 import * as THREE from '../../libs/three125/three.module.js';
-import { GLTFLoader } from '../../libs/three125/GLTFLoader.js';
-import { RGBELoader } from '../../libs/three125/RGBELoader.js';
+import { OrbitControls } from '../../libs/three125/OrbitControls.js';
+import { Stats } from '../../libs/stats.module.js';
 import { ARButton } from '../../libs/ARButton.js';
-import { LoadingBar } from '../../libs/LoadingBar.js';
-import { Player } from '../../libs/Player.js';
+
 
 class App{
 	constructor(){
@@ -12,234 +11,130 @@ class App{
         
         this.clock = new THREE.Clock();
         
-        this.loadingBar = new LoadingBar();
-
-		this.assetsPath = '../../assets/';
-        
 		this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 20 );
-		this.camera.position.set( 0, 1.6, 3 );
-        
+		
 		this.scene = new THREE.Scene();
+       
+		this.scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
 
-		const ambient = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 2);
-        ambient.position.set( 0.5, 1, 0.25 );
-		this.scene.add(ambient);
-        
-        const light = new THREE.DirectionalLight();
-        light.position.set( 0.2, 1, 1);
-        this.scene.add(light);
+        const light = new THREE.DirectionalLight( 0xffffff );
+        light.position.set( 1, 1, 1 ).normalize();
+		this.scene.add( light );
 			
 		this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true } );
 		this.renderer.setPixelRatio( window.devicePixelRatio );
 		this.renderer.setSize( window.innerWidth, window.innerHeight );
-		this.renderer.outputEncoding = THREE.sRGBEncoding;
-		container.appendChild( this.renderer.domElement );
-        this.setEnvironment();
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
         
-        this.workingVec3 = new THREE.Vector3();
+		container.appendChild( this.renderer.domElement );
+        
+        this.controls = new OrbitControls( this.camera, this.renderer.domElement );
+        this.controls.target.set(0, 3.5, 0);
+        this.controls.update();
+        
+        this.stats = new Stats();
+
         
         this.initScene();
-        this.setupXR();
-		
-		window.addEventListener('resize', this.resize.bind(this));
+        this.setupVR();
         
-	}
-    
-    setEnvironment(){
-        const loader = new RGBELoader().setDataType( THREE.UnsignedByteType );
-        const pmremGenerator = new THREE.PMREMGenerator( this.renderer );
-        pmremGenerator.compileEquirectangularShader();
+        window.addEventListener('resize', this.resize.bind(this) );
+
         
-        const self = this;
-        
-        loader.load( '../../assets/hdr/venice_sunset_1k.hdr', ( texture ) => {
-          const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
-          pmremGenerator.dispose();
-
-          self.scene.environment = envMap;
-
-        }, undefined, (err)=>{
-            console.error( 'An error occurred setting the environment');
-        } );
-    }
-	
-    resize(){ 
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-    	this.camera.updateProjectionMatrix();
-    	this.renderer.setSize( window.innerWidth, window.innerHeight );  
-    }
-    
-    loadImage(){
-	    const texture = new THREE.TextureLoader().load( 'https://i.picsum.photos/id/237/200/300.jpg?hmac=TmmQSbShHz9CdQm0NkEjx1Dyh_Y984R9LpNrpvH2D_U'    );
-        // immediately use the texture for material creation
-        const material2 = new THREE.MeshBasicMaterial( { map: texture } );
-        var geometry2 = new THREE.PlaneGeometry(.3, .3*.75);
-        // plane.material.side = THREE.DoubleSide;
-        var mesh = new THREE.Mesh(geometry2, material2);
-
-        // const loader = new GLTFLoader().setPath(this.assetsPath);
-		// const self = this;
-		
-		// Load a GLTF resource
-		// loader.load(
-		// 	// resource URL
-		// 	`knight2.glb`,
-		// 	// called when the resource is loaded
-		// 	function ( gltf ) {
-		// 		const object = gltf.scene.children[5];
-				
-				// const options = {
-				// 	object: object,
-				// 	speed: 0.5,
-				// 	assetsPath: self.assetsPath,
-				// 	loader: loader,
-                //     animations: gltf.animations,
-				// 	clip: gltf.animations[0],
-				// 	app: self,
-				// 	name: 'knight',
-				// 	npc: false
-				// };
-				
-			self.knight = new Player(options);
-            self.knight.object.visible = false;
-				
-			//	self.knight.action = 'Dance';
-			//	const scale = 0.005;
-			//	self.knight.object.scale.set(scale, scale, scale); 
-				
-            //    self.loadingBar.visible = false;
-            //    self.renderer.setAnimationLoop( self.render.bind(self) );//(timestamp, frame) => { self.render(timestamp, frame); } );
-			//},
-			// called while loading is progressing
-			//function ( xhr ) {
-
-			//	self.loadingBar.progress = (xhr.loaded / xhr.total);
-
-			//},
-			// called when loading has errors
-			// function ( error ) {
-
-			// 	console.log( 'An error happened' );
-
-			// }
-		//);
-	}		
+	}	
     
     initScene(){
-        this.reticle = new THREE.Mesh(
-            new THREE.RingBufferGeometry( 0.15, 0.2, 32 ),//.rotateX( - Math.PI / 2 ),
-            new THREE.MeshBasicMaterial()
-        );
+        //this.geometry = new THREE.BoxBufferGeometry( 0.06, 0.06, 0.06 ); 
+        this.meshes = [];
+
+        let controller;
+
+        const texturearray = ['https://www.larvalabs.com/cryptopunks/cryptopunk3747.png','https://www.larvalabs.com/cryptopunks/cryptopunk1148.png', 'https://www.larvalabs.com/cryptopunks/cryptopunk2954.png' ]
+
+        //Add couple of images as an array here
         
-        this.reticle.matrixAutoUpdate = false;
-        this.reticle.visible = false;
-        this.scene.add( this.reticle );
+     /*    'boss-beauties-nft-project-768x768.jpg.webp'
+        'crypto-chicks-NFT-pfp-project-768x768.jpg.webp'
+        'sad-girls-bar-nft-project-768x768.jpg.webp'
+         */
+
+       
+            // plane.material.side = THREE.DoubleSide;
+
+        //var mesh = new THREE.Mesh(geometry2, material2);
         
-        this.loadImage();
+
+        controller = this.renderer.xr.getController( 0 );
+
+        for (let i = 0; i < 3; i++) {
+
+            var texture = new THREE.TextureLoader().load( texturearray[i]    );
+
+            
+            var material2 = new THREE.MeshBasicMaterial( { map: texture } );
+
+            var geometry2 = new THREE.PlaneGeometry(.1, .1);
+   
+            var mesh2 = new THREE.Mesh( geometry2, material2 ); 
+           // set the position of the image mesh in the x,y,z dimensions
+
+            //mesh.position.set( 0, 0, - 0.3 ).applyMatrix4( controller.matrixWorld );
+            
+            //mesh2.position.set(-5+ 2*(i%5),i/5,0).applyMatrix4( controller.matrixWorld );
+            mesh2.position.set(0.11*(i%4)-0.2 ,0.11*(i/4), - 0.3 ).applyMatrix4( controller.matrixWorld );
+           
+        
+            // add the image to the scene
+            mesh2.quaternion.setFromRotationMatrix( controller.matrixWorld );
+            this.scene.add( mesh2 );
+          }
+        
+
+
+        
+
+        
+
     }
     
-    setupXR(){
-        this.renderer.xr.enabled = true;
-        
-        const btn = new ARButton( this.renderer, { sessionInit: { requiredFeatures: [ 'hit-test' ], optionalFeatures: [ 'dom-overlay' ], domOverlay: { root: document.body } } } );
+    setupVR(){
+        this.renderer.xr.enabled = true; 
         
         const self = this;
-
-        this.hitTestSourceRequested = false;
-        this.hitTestSource = null;
+        
         
         function onSelect() {
+            // const material = new THREE.MeshPhongMaterial( { color: 0xffffff * Math.random() } );
+            // const mesh = new THREE.Mesh( self.geometry, material );
 
-            mesh.position.set( 0, 0, - 0.3 ).applyMatrix4( controller.matrixWorld );
-            mesh.quaternion.setFromRotationMatrix( controller.matrixWorld );
-            self.scene.add( mesh );
-            self.meshes.push( mesh );
+                  
 
-         //   if (self.knight===undefined) return;
-            
-            // if (self.reticle.visible){
-            //     if (self.knight.object.visible){
-            //         self.workingVec3.setFromMatrixPosition( self.reticle.matrix );
-            //         self.knight.newPath(self.workingVec3);
-            //     }else{
-            //         self.knight.object.position.setFromMatrixPosition( self.reticle.matrix );
-            //         self.knight.object.visible = true;
-            //     }
-            // }
+           
+            //self.meshes.push( mesh );
+
+            // scene.add(mesh2);
+
         }
 
-        this.controller = this.renderer.xr.getController( 0 );
-        this.controller.addEventListener( 'select', onSelect );
+        const btn = new ARButton( this.renderer );
         
-        this.scene.add( this.controller );    
+        // controller = this.renderer.xr.getController( 0 );
+        // controller.addEventListener( 'select', onSelect );
+        // this.scene.add( controller );
+        
+        this.renderer.setAnimationLoop( this.render.bind(this) );
     }
     
-    requestHitTestSource(){
-        const self = this;
-        
-        const session = this.renderer.xr.getSession();
-
-        session.requestReferenceSpace( 'viewer' ).then( function ( referenceSpace ) {
-            
-            session.requestHitTestSource( { space: referenceSpace } ).then( function ( source ) {
-
-                self.hitTestSource = source;
-
-            } );
-
-        } );
-
-        session.addEventListener( 'end', function () {
-
-            self.hitTestSourceRequested = false;
-            self.hitTestSource = null;
-            self.referenceSpace = null;
-
-        } );
-
-        this.hitTestSourceRequested = true;
-
+    resize(){
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize( window.innerWidth, window.innerHeight );  
     }
     
-    getHitTestResults( frame ){
-        const hitTestResults = frame.getHitTestResults( this.hitTestSource );
-
-        if ( hitTestResults.length ) {
-            
-            const referenceSpace = this.renderer.xr.getReferenceSpace();
-            const hit = hitTestResults[ 0 ];
-            const pose = hit.getPose( referenceSpace );
-
-            this.reticle.visible = true;
-            this.reticle.matrix.fromArray( pose.transform.matrix );
-
-        } else {
-
-            this.reticle.visible = false;
-
-        }
-
-    }
-
-    render( timestamp, frame ) {
-        const dt = this.clock.getDelta();
-        if (this.knight) this.knight.update(dt);
-
-        const self = this;
-        
-        if ( frame ) {
-
-            if ( this.hitTestSourceRequested === false ) this.requestHitTestSource( )
-
-            if ( this.hitTestSource ) this.getHitTestResults( frame );
-
-        }
-
+	render( ) {   
+        this.stats.update();
+  //      this.meshes.forEach( (mesh) => { mesh.rotateY( 0.01 ); });
         this.renderer.render( this.scene, this.camera );
-        
-        /*if (this.knight.calculatedPath && this.knight.calculatedPath.length>0){
-            console.log( `path:${this.knight.calculatedPath[0].x.toFixed(2)}, ${this.knight.calculatedPath[0].y.toFixed(2)}, ${this.knight.calculatedPath[0].z.toFixed(2)} position: ${this.knight.object.position.x.toFixed(2)}, ${this.knight.object.position.y.toFixed(2)}, ${this.knight.object.position.z.toFixed(2)}`);
-        }*/
     }
 }
 
